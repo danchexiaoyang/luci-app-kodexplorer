@@ -11,10 +11,33 @@ s.addremove = false
 o = s:option(Flag, "enable", translate("启用"))
 o.rmempty = false
 
-o = s:option(Value, "port", translate("Nginx 端口"))
+o = s:option(Value, "port", translate("Nginx HTTP端口"))
 o.datatype = "port"
 o.default = 8081
 o.rmempty = false
+
+-- 新增 HTTPS 开关
+o = s:option(Flag, "https_enable", translate("启用 HTTPS"))
+o.rmempty = true  -- 设置为 true，表示可为空
+o.default = false -- 默认关闭
+
+o = s:option(Value, "https_port", translate("HTTPS 端口"))
+o.datatype = "port"
+o.default = 8443
+o:depends("https_enable", 1)  -- 仅在启用 HTTPS 时显示
+o.rmempty = true  -- 将其设置为 true，表示可为空
+
+o = s:option(Value, "ssl_certificate", translate("SSL 证书路径"))
+o.datatype = "file"
+o.description = translate("输入 SSL 证书的路径，例如 /etc/nginx/ssl/server.crt")
+o:depends("https_enable", 1)  -- 仅在启用 HTTPS 时显示
+o.rmempty = true  -- 将其设置为 true，表示可为空
+
+o = s:option(Value, "ssl_certificate_key", translate("SSL 证书密钥路径"))
+o.datatype = "file"
+o.description = translate("输入 SSL 证书密钥的路径，例如 /etc/nginx/ssl/server.key")
+o:depends("https_enable", 1)  -- 仅在启用 HTTPS 时显示
+o.rmempty = true  -- 将其设置为 true，表示可为空
 
 o = s:option(Value, "memory_limit", translate("最大内存使用量"))
 o.description = translate("如果您的设备有较多内存，可以增加此值。")
@@ -51,4 +74,3 @@ o.btnclick = "downloadClick(this);"
 o.id = "download_btn"
 
 return m
-
