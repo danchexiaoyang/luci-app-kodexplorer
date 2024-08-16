@@ -1,10 +1,12 @@
-
 config global
-	option port '8080'
-	option storage_device_path '/opt/kodexplorer/'
-	option project_directory '/opt/kodexplorer'
-	option enable '0'
-	option memory_limit '120M'
-	option post_max_size '100M'
-	option upload_max_filesize '100M'
-
+    option port '8080'                              # Nginx HTTP 端口
+    option https_enable '0'                         # 是否启用 HTTPS（1 启用，0 不启用）
+    option https_port '8443'                        # Nginx HTTPS 端口
+    option storage_device_path '/opt/kodexplorer/'  # 存储设备路径
+    option project_directory '/opt/kodexplorer'     # 可道云项目目录
+    option enable '0'                               # 是否启用可道云
+    option ssl_certificate '/etc/nginx/ssl/kodexplorer.crt'    # SSL 证书路径
+    option ssl_certificate_key '/etc/nginx/ssl/kodexplorer.key' # SSL 证书密钥路径
+    option memory_limit '120M'                      # PHP 最大内存使用量
+    option post_max_size '100M'                     # PHP 最大 POST 容量
+    option upload_max_filesize '100M'               # PHP 上传文件的最大内存使用量
