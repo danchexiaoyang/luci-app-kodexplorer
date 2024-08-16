@@ -20,7 +20,12 @@ config_t_get() {
 
 gen_nginx_config() {
 	port=$(config_t_get global port)
+	https_port=$(config_t_get global https_port)
 	project_directory=$(config_t_get global project_directory)
+	ssl_certificate=$(config_t_get global ssl_certificate)
+	ssl_certificate_key=$(config_t_get global ssl_certificate_key)
+	https_enable=$(config_t_get global https_enable)
+
 	cat <<-EOF > $1
 		user root root;
 		worker_processes  1;
@@ -35,23 +40,42 @@ gen_nginx_config() {
 		    server {
 		        listen $port;
 		        listen [::]:$port;
-		        server_name  localhost;
+		        server_name localhost;
+	EOF
+
+	# 如果启用了 HTTPS，添加相关配置
+	if [ "$https_enable" = "1" ]; then
+		cat <<-EOF >> $1
+		        listen $https_port ssl;
+		        listen [::]:$https_port ssl;
+		        ssl_certificate $ssl_certificate;
+		        ssl_certificate_key $ssl_certificate_key;
+		        ssl_session_cache shared:SSL:1m;
+		        ssl_session_timeout 10m;
+		        ssl_ciphers HIGH:!aNULL:!MD5;
+		        ssl_prefer_server_ciphers on;
+		EOF
+	fi
+
+	cat <<-EOF >> $1
 		        location / {
 		            root $project_directory;
 		            index index.html index.htm index.php;
 		        }
-		        error_page   500 502 503 504  /50x.html;
+
+		        error_page 500 502 503 504 /50x.html;
 		        location = /50x.html {
-		            root   html;
+		            root html;
 		        }
+
 		        location ~ \.php(.*)$ {
 		            root $project_directory;
-		            try_files \$uri = 404; # PHP 文件不存在返回404
-		            fastcgi_pass unix:/var/run/php8-fpm.sock; # 通过 Unix 套接字执行 PHP
+		            try_files \$uri =404;
+		            fastcgi_pass unix:/var/run/php8-fpm.sock;
 		            fastcgi_index index.php;
-		            fastcgi_split_path_info  ^(.+\.php)(.*)$;
-		            fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name; # 修复 Nginx fastcgi 漏洞
-		            fastcgi_param  PATH_INFO  \$fastcgi_path_info;
+		            fastcgi_split_path_info ^(.+\.php)(.*)$;
+		            fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+		            fastcgi_param PATH_INFO \$fastcgi_path_info;
 		            include /etc/nginx/fastcgi_params;
 		        }
 		    }
@@ -59,17 +83,19 @@ gen_nginx_config() {
 	EOF
 }
 
+
 gen_php_config() {
 	storage_device_path=$(config_t_get global storage_device_path)
 	memory_limit=$(config_t_get global memory_limit)
 	post_max_size=$(config_t_get global post_max_size)
 	upload_max_filesize=$(config_t_get global upload_max_filesize)
 	cp $PHP_CONFIG $PHP_BACKUP_CONFIG
+
 	cat <<-EOF >$PHP_CONFIG
 		[PHP]
 		zend.ze1_compatibility_mode = Off
 		engine = On
-		precision    =  12
+		precision = 12
 		y2k_compliance = On
 		output_buffering = Off
 		zlib.output_compression = Off
@@ -84,7 +110,7 @@ gen_php_config() {
 		max_execution_time = 30
 		max_input_time = 60
 		memory_limit = $memory_limit
-		error_reporting  =  E_ALL & ~E_NOTICE & ~E_STRICT
+		error_reporting = E_ALL & ~E_NOTICE & ~E_STRICT
 
 		display_errors = On
 		display_startup_errors = Off
@@ -108,7 +134,6 @@ gen_php_config() {
 		auto_append_file =
 		default_mimetype = "text/html"
 
-		;doc_root = "/www"
 		user_dir =
 		extension_dir = "/usr/lib/php8"
 		enable_dl = On
@@ -123,7 +148,7 @@ gen_php_config() {
 		allow_url_include = Off
 		default_socket_timeout = 60
 	EOF
-		
+
 	cat <<-EOF >$PHP_FPM_CONFIG
 		[global]
 		pid = /var/run/kodexplorer_php8-fpm.pid
